@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>RootCode</title>
+
+<style>
+:root{
+  --bg:#020302;
+  --lime:#00ff66;
+  --lime-soft:#33ff99;
+  --lime-dim:#009944;
+  --alert:#ff0033;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  height:100vh;
+  background:radial-gradient(#001a0a,#000);
+  color:var(--lime);
+  font-family:"Courier New", monospace;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  overflow:hidden;
+  letter-spacing:1px;
+}
+
+/* MATRIX RAIN LAYER */
+#rain{
+  position:fixed;
+  inset:0;
+  pointer-events:none;
+  opacity:.25;
+  mix-blend:screen;
+}
+
+/* SCREEN NOISE */
+body::before{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:repeating-linear-gradient(
+    180deg,
+    rgba(0,255,80,.07) 0px,
+    rgba(0,255,80,.07) 1px,
+    transparent 3px,
+    transparent 5px
+  );
+  animation:scan 6s linear infinite;
+  pointer-events:none;
+}
+@keyframes scan{
+  0%{transform:translateY(-10%)}
+  100%{transform:translateY(10%)}
+}
+
+/* CRT SCANLINE */
+body::after{
+  content:"";
+  position:fixed;
+  inset:0;
+  background:linear-gradient(
+    rgba(255,255,255,.06) 50%,
+    transparent 50%
+  );
+  background-size:100% 3px;
+  mix-blend:overlay;
+  pointer-events:none;
+}
+
+/* APP SHELL */
+.app{
+  width:420px;
+  background:#010301;
+  border:1px solid var(--lime-dim);
+  border-radius:4px;
+  box-shadow:
+    0 0 40px #00ff6633,
+    inset 0 0 25px #00ff2215;
+  position:relative;
+}
+
+/* HEADER */
+.header{
+  text-align:center;
+  padding:14px 6px;
+  border-bottom:1px solid var(--lime-dim);
+  text-shadow:0 0 10px var(--lime);
+  letter-spacing:4px;
+  animation:glitch 2s infinite;
+}
+@keyframes glitch{
+  0%{text-shadow:0 0 6px var(--lime)}
+  40%{text-shadow:-2px 0 var(--alert),2px 0 cyan}
+  75%{text-shadow:0 0 8px var(--lime-soft)}
+  100%{text-shadow:0 0 6px var(--lime)}
+}
+
+/* TERMINAL PANEL */
+.add{
+  padding:12px;
+  border-bottom:1px dashed var(--lime-dim);
+  background:#000a03;
+}
+
+input{
+  width:100%;
+  background:#000;
+  border:1px solid var(--lime-dim);
+  padding:10px;
+  color:var(--lime);
+  margin-bottom:8px;
+  outline:none;
+  box-shadow:inset 0 0 12px #00ff3333;
+}
+input::placeholder{color:#007733}
+
+button{
+  width:100%;
+  background:#000;
+  border:1px solid var(--lime);
+  color:var(--lime);
+  padding:10px;
+  cursor:pointer;
+  letter-spacing:2px;
+  text-shadow:0 0 6px var(--lime);
+  transition:.2s;
+}
+button:hover{
+  background:var(--lime);
+  color:#000;
+  box-shadow:0 0 20px #00ff66aa;
+}
+button:active{
+  background:#111;
+  color:var(--lime);
+}
+
+/* ACCOUNTS PANEL */
+.accounts{padding:10px}
+
+.account{
+  border:1px solid var(--lime-dim);
+  padding:12px;
+  margin-bottom:12px;
+  box-shadow:
+    inset 0 0 15px #00ff6622,
+    0 0 12px #00ff3344;
+  background:#000903;
+}
+
+.name{
+  font-size:12px;
+  color:#66ff99;
+  letter-spacing:2px;
+}
+
+.otp{
+  font-size:40px;
+  letter-spacing:6px;
+  margin:6px 0;
+  text-shadow:
+    0 0 12px var(--lime),
+    0 0 24px #00ff66aa;
+}
+
+.future{
+  font-size:13px;
+  color:#22ff88;
+  opacity:.9;
+}
+
+.timer{
+  font-size:11px;
+  margin-top:6px;
+  color:#66ffbb;
+}
+
+.cursor::after{
+  content:"_";
+  animation:blink 1s infinite;
+}
+@keyframes blink{50%{opacity:0}}
+
+.console{
+  font-size:11px;
+  padding:8px 10px;
+  border-top:1px dashed #006633;
+  color:#33ff99aa;
+  height:70px;
+  overflow-y:hidden;
+}
+
+/* COPYRIGHT FOOTER */
+.footer{
+  text-align:center;
+  font-size:11px;
+  padding:8px 0 10px;
+  color:#55ff99;
+  border-top:1px dashed #006633;
+  text-shadow:0 0 8px #00ff66aa;
+  letter-spacing:2px;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="rain"></canvas>
+
+<div class="app">
+  <div class="header cursor">RootCode</div>
+
+  <div class="add">
+    <input id="name" placeholder=">ACCOUNT_NAME">
+    <input id="secret" placeholder=">SECRET_KEY">
+    <button onclick="addAccount()">[ EXECUTE ]</button>
+  </div>
+
+  <div class="accounts" id="accounts"></div>
+
+  <div class="console" id="console"></div>
+
+  <div class="footer">
+    RootCode © Humayun Shariar Himu
+  </div>
+</div>
+
+<script>
+/* MATRIX RAIN EFFECT */
+const cvs=document.getElementById("rain");
+const ctx=cvs.getContext("2d");
+let w,h,cols,ypos;
+function resize(){
+  w=cvs.width=innerWidth;
+  h=cvs.height=innerHeight;
+  cols=Math.floor(w/12);
+  ypos=Array(cols).fill(0);
+}
+resize();
+window.onresize=resize;
+
+function rain(){
+  ctx.fillStyle="rgba(0,0,0,.08)";
+  ctx.fillRect(0,0,w,h);
+  ctx.fillStyle="#00ff66";
+  ctx.font="12px monospace";
+  ypos.forEach((y,idx)=>{
+    const text=Math.floor(Math.random()*16).toString(16);
+    const x=idx*12;
+    ctx.fillText(text,x,y);
+    if(y>h+Math.random()*100) ypos[idx]=0;
+    else ypos[idx]=y+12;
+  });
+}
+setInterval(rain,50);
+
+const base32chars="ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+let accounts=[];
+const logEl=document.getElementById("console");
+
+function log(msg){
+  logEl.innerHTML += `[OK] ${msg}<br>`;
+  logEl.scrollTop=logEl.scrollHeight;
+}
+
+function base32ToBytes(b){
+  let bits="",out=[];
+  b=b.replace(/=+$/,"").toUpperCase();
+  for(let c of b){
+    let v=base32chars.indexOf(c);
+    if(v<0) continue;
+    bits+=v.toString(2).padStart(5,"0");
+  }
+  for(let i=0;i+8<=bits.length;i+=8)
+    out.push(parseInt(bits.slice(i,i+8),2));
+  return new Uint8Array(out);
+}
+
+async function totp(secret,offset=0){
+  const key=base32ToBytes(secret);
+  const counter=Math.floor(Date.now()/1000/30)+offset;
+  const buf=new ArrayBuffer(8);
+  new DataView(buf).setUint32(4,counter);
+
+  const ck=await crypto.subtle.importKey(
+    "raw",key,{name:"HMAC",hash:"SHA-1"},false,["sign"]
+  );
+  const h=new Uint8Array(await crypto.subtle.sign("HMAC",ck,buf));
+  const o=h[h.length-1]&0xf;
+  const code=((h[o]&0x7f)<<24)|((h[o+1]&0xff)<<16)|
+             ((h[o+2]&0xff)<<8)|(h[o+3]&0xff);
+  return (code%1e6).toString().padStart(6,"0");
+}
+
+const nameEl=document.getElementById("name");
+const secretEl=document.getElementById("secret");
+
+function addAccount(){
+  if(!secretEl.value) return;
+  const acc={
+    name:nameEl.value || "TARGET::HOST",
+    secret:secretEl.value.trim()
+  };
+  accounts.push(acc);
+  log(`TOKEN_INJECTED => ${acc.name}`);
+  nameEl.value="";
+  secretEl.value="";
+  render();
+}
+
+function render(){
+  const box=document.getElementById("accounts");
+  box.innerHTML="";
+  accounts.forEach((a,i)=>{
+    box.innerHTML += `
+      <div class="account">
+        <div class="name">> SESSION ${i+1} :: ${a.name}</div>
+        <div class="otp" id="cur-${i}">------</div>
+        <div id="futures-${i}"></div>
+        <div class="timer" id="t-${i}"></div>
+      </div>
+    `;
+  });
+}
+
+async function update(){
+  if(!accounts.length) return;
+  const remain=30-(Math.floor(Date.now()/1000)%30);
+
+  for(let i=0;i<accounts.length;i++){
+    const cur=document.getElementById(`cur-${i}`);
+    const fut=document.getElementById(`futures-${i}`);
+    const t=document.getElementById(`t-${i}`);
+    if(!cur) continue;
+
+    cur.textContent = await totp(accounts[i].secret);
+
+    let f="";
+    for(let o=1;o<=4;o++){
+      f += `<div class="future">+${o*30}s ⇒ ${await totp(accounts[i].secret,o)}</div>`;
+    }
+    fut.innerHTML=f;
+
+    t.textContent = `SYNC::OK | ROTATE::${remain}s`;
+  }
+}
+setInterval(update,900);
+</script>
+</body>
+</html>
